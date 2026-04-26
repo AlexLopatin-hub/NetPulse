@@ -12,8 +12,8 @@
   "app": {
     "windows": [
       {
-        "title": "netpulse",
-        "width": 300,
+        "title": "Netpulse",
+        "width": 400,
         "height": 200,
         "resizable": false,
         "decorations": false,
@@ -22,6 +22,16 @@
         "shadow": false,
         "skipTaskbar": true,
         "visible": true
+      },
+      {
+        "label": "settings",
+        "url": "/settings",
+        "title": "Настройки — NetPulse",
+        "width": 460,
+        "height": 420,
+        "resizable": false,
+        "decorations": true,
+        "visible": false
       }
     ],
     "security": {
