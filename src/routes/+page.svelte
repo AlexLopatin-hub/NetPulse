@@ -29,7 +29,6 @@
     let hosts: HostEntry[] = [];
     let columns: ColumnConfig = { latency: true, jitter: true, loss: true };
     let metrics: Record<string, HostMetrics> = {};
-
     let widgetEl: HTMLElement;
 
     async function updateSize() {
@@ -40,6 +39,15 @@
             width: Math.ceil(rect.width),
             height: Math.ceil(rect.height),
         });
+    }
+
+    let dragTimer: ReturnType<typeof setTimeout> | null = null;
+    function onDragMove() {
+        if (dragTimer) clearTimeout(dragTimer);
+        dragTimer = setTimeout(
+            () => invoke("save_position").catch(() => {}),
+            400,
+        );
     }
 
     onMount(() => {
@@ -90,22 +98,29 @@
         return "bad";
     }
 
+    // U+2007 FIGURE SPACE has the same advance width as a digit in tabular fonts.
+    // We pad both numbers and the placeholder to the same 3-character width so
+    // the layout never shifts regardless of the value shown.
+    const FIGURE_SPACE = "\u2007";
+    const PLACEHOLDER = FIGURE_SPACE + "--";
     function fmt(n: number | undefined): string {
-        if (n === undefined || n === 0) return "--";
-        return String(n).padStart(3, "\u2007");
+        if (n === undefined || n === 0) return PLACEHOLDER;
+        return String(n).padStart(3, FIGURE_SPACE);
     }
 
     function fmtLoss(m: HostMetrics | undefined): string {
-        if (!m) return "--";
-        return m.loss.toFixed(0).padStart(3, "\u2007");
+        if (!m) return PLACEHOLDER;
+        return m.loss.toFixed(0).padStart(3, FIGURE_SPACE);
     }
-
-    $: activeColumns = [columns.latency, columns.jitter, columns.loss].filter(
-        Boolean,
-    ).length;
 </script>
 
-<main bind:this={widgetEl} class="widget" data-tauri-drag-region>
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<main
+    bind:this={widgetEl}
+    class="widget"
+    data-tauri-drag-region
+    on:mousemove={onDragMove}
+>
     {#each hosts as host}
         {@const m = metrics[host.label]}
         {@const s = status(m)}
@@ -139,7 +154,6 @@
         padding: 0;
         overflow: hidden;
         background: transparent;
-
         display: flex;
         width: fit-content;
         height: fit-content;
@@ -151,17 +165,19 @@
         gap: 5px;
         padding: 9px 13px;
 
-        backdrop-filter: blur(32px) saturate(1.6) brightness(0.68);
-        -webkit-backdrop-filter: blur(32px) saturate(1.6) brightness(0.68);
+        backdrop-filter: blur(40px) saturate(1.8) brightness(0.5);
+        -webkit-backdrop-filter: blur(40px) saturate(1.8) brightness(0.5);
 
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
         border-radius: 13px;
 
         font-family:
             system-ui,
             -apple-system,
             sans-serif;
-        color: rgba(255, 255, 255, 0.9);
+        color: rgba(255, 255, 255, 0.8);
         user-select: none;
         white-space: nowrap;
     }
@@ -171,6 +187,7 @@
         align-items: center;
         gap: 7px;
         pointer-events: none;
+        margin-right: 4px;
     }
 
     .dot {
@@ -181,26 +198,26 @@
     }
     .dot-good {
         background: #4ade80;
-        box-shadow: 0 0 5px #4ade80aa;
+        box-shadow: 0 0 6px #4ade80cc;
     }
     .dot-medium {
         background: #facc15;
-        box-shadow: 0 0 5px #facc15aa;
+        box-shadow: 0 0 6px #facc15cc;
     }
     .dot-bad {
         background: #f87171;
-        box-shadow: 0 0 5px #f87171aa;
+        box-shadow: 0 0 6px #f87171cc;
     }
     .dot-unknown {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.25);
     }
 
     .lbl {
         font-size: 12px;
         font-weight: 500;
-        color: rgba(255, 255, 255, 0.6);
+        color: rgba(255, 255, 255, 0.92);
         min-width: 54px;
-        text-shadow: 0 1px 6px rgba(0, 0, 0, 1);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
     }
 
     .nums {
@@ -211,22 +228,26 @@
 
     .num {
         display: inline-block;
-        min-width: 3.2ch;
+        /*
+         * Width is fixed at exactly 3 tabular digits + sub label.
+         * We do NOT use min-width here because different fonts render
+         * figure-space slightly differently — instead the JS padding
+         * guarantees a stable 3-char string at all times.
+         */
+        width: 4ch;
         text-align: right;
-
         font-size: 13px;
         font-weight: 600;
         font-variant-numeric: tabular-nums;
         font-feature-settings: "tnum";
-
-        color: rgba(255, 255, 255, 0.52);
-        text-shadow: 0 1px 6px rgba(0, 0, 0, 1);
+        color: rgba(255, 255, 255, 0.8);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
     }
 
     .num sub {
         font-size: 9px;
         font-weight: 400;
-        opacity: 0.5;
+        opacity: 0.8;
         margin-left: 1px;
         vertical-align: baseline;
         position: relative;
@@ -237,7 +258,7 @@
     }
 
     .sep {
-        color: rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.2);
         font-size: 10px;
     }
 </style>
