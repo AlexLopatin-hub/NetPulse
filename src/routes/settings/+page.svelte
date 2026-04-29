@@ -18,10 +18,12 @@
     interface Settings {
         hosts: HostEntry[];
         columns: ColumnConfig;
+        autostart: boolean;
     }
 
     let hosts: HostEntry[] = [];
     let columns: ColumnConfig = { latency: true, jitter: false, loss: false };
+    let autostart = false;
     let saving = false;
     let error = "";
 
@@ -29,6 +31,7 @@
         const s = await invoke<Settings>("get_settings");
         hosts = s.hosts;
         columns = s.columns;
+        autostart = s.autostart;
     });
 
     function addHost() {
@@ -53,7 +56,7 @@
         saving = true;
         try {
             await invoke("save_settings", {
-                settings: { hosts: valid, columns },
+                settings: { hosts: valid, columns, autostart },
             });
         } catch (e) {
             error = String(e);
@@ -130,6 +133,15 @@
                 Потери <span class="hint">%</span>
             </label>
         </div>
+    </section>
+
+    <section>
+        <h3 class="section-title">Автозапуск</h3>
+        <label class="check-label">
+            <input type="checkbox" bind:checked={autostart} />
+            <span class="check-box"></span>
+            Запускать NetPulse при старте системы
+        </label>
     </section>
 
     {#if error}
@@ -318,9 +330,6 @@
         border-top: none;
         border-left: none;
         transform: rotate(45deg);
-    }
-
-    .check-label input[type="checkbox"]:checked ~ * {
     }
 
     .hint {

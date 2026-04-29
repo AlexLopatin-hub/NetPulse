@@ -11,6 +11,7 @@ use tauri::{
     Emitter, Manager,
 };
 use tauri_plugin_store::StoreExt;
+use tauri_plugin_autostart::{init, MacosLauncher, ManagerExt};
 use tokio::net::TcpStream;
 use tokio::time::{timeout, Instant};
 use tokio_rustls::TlsConnector;
@@ -53,6 +54,8 @@ impl Default for ColumnConfig {
 struct Settings {
     hosts: Vec<HostEntry>,
     columns: ColumnConfig,
+    #[serde(default)]
+    autostart: bool,
 }
 
 type SharedSettings = Arc<Mutex<Settings>>;
@@ -77,6 +80,7 @@ fn default_settings() -> Settings {
             },
         ],
         columns: ColumnConfig::default(),
+        autostart: false,
     }
 }
 
@@ -94,6 +98,13 @@ fn save_settings(shared: tauri::State<SharedSettings>, app: tauri::AppHandle, se
         let _ = store.set("settings", serde_json::to_value(&settings).unwrap());
         let _ = store.save();
     }
+
+    if settings.autostart {
+        let _ = app.autolaunch().enable();
+    } else {
+        let _ = app.autolaunch().disable();
+    }
+
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.emit("settings_updated", settings);
     }
@@ -229,6 +240,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(init(MacosLauncher::LaunchAgent, None))
         .manage(shared.clone())
         .invoke_handler(tauri::generate_handler![
             get_settings,
@@ -240,7 +252,12 @@ fn main() {
             let store = app.store(STORE_FILE)?;
             if let Some(val) = store.get("settings") {
                 if let Ok(s) = serde_json::from_value::<Settings>(val) {
-                    *shared.lock().unwrap() = s;
+                    *shared.lock().unwrap() = s.clone();
+                    if s.autostart {
+                        let _ = app.autolaunch().enable();
+                    } else {
+                        let _ = app.autolaunch().disable();
+                    }
                 }
             }
 
