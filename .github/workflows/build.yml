@@ -92,13 +92,11 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/**/bundle/*.msi
-            artifacts/**/bundle/*.deb
-            artifacts/**/bundle/*.rpm
-            artifacts/**/bundle/*.AppImage
+            artifacts/**/*.msi
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
           body: |
             NetPulse Release ${{ github.ref_name }}
-            
             Downloads:
             - **Windows**: `.msi` installer
             - **Linux**: `.deb` and `.rpm` packages
