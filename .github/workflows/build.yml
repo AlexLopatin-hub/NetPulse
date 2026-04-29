@@ -5,7 +5,7 @@ on:
     branches:
       - master
     tags:
-      - 'v*'  # Триггер при создании тега вида v1.0.0
+      - 'v*'
 
 jobs:
   build-tauri:
@@ -19,8 +19,6 @@ jobs:
             args: ''
           - platform: 'windows-latest'
             args: ''
-          # - platform: 'macos-latest'  # Опционально, если не нужен macOS
-          #   args: '--target aarch64-apple-darwin'
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -87,10 +85,17 @@ jobs:
         with:
           path: artifacts
 
+      - name: List artifacts (debug)
+        run: find artifacts -type f | head -20
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: artifacts/**/*
+          files: |
+            artifacts/**/bundle/*.msi
+            artifacts/**/bundle/*.deb
+            artifacts/**/bundle/*.rpm
+            artifacts/**/bundle/*.AppImage
           body: |
             NetPulse Release ${{ github.ref_name }}
             
@@ -101,3 +106,4 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
